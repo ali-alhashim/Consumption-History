@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consumption History</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        canvas {
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Consumption History</h1>
+    <form id="consumptionForm">
+        <label for="contractAccount">Contract Account: رقم الحساب</label>
+        <input type="text" id="contractAccount" name="contractAccount" required><br><br>
+       
+        <button type="submit">Get Consumption History</button>
+    </form>
+    
+    <canvas id="consumptionChart" width="400" height="200"></canvas>
+
+    <script>
+        document.getElementById('consumptionForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            let contractAccount = document.getElementById('contractAccount').value;
+            
+
+            let apiUrl = `http://localhost:5000/fetch-data?contractAccount=${contractAccount}`;
+
+            fetch(apiUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('API Response:', data);  // Log the response to inspect its structure
+                    
+                    // Assuming the response has a property 'd' which contains 'results'
+                    if (data && data.d && data.d.Bill_ConsumptionHistory) {
+                        const consumptionData = data.d.Bill_ConsumptionHistory.results;
+
+                        console.log("consumptionData:=", consumptionData);
+
+                        const labels = consumptionData.map(item => item.Yearperiod);
+                        const cost   = consumptionData.map(item => item.Amount);
+                        const dataPoints = consumptionData.map(item => item.ConsQty);
+
+                        const ctx = document.getElementById('consumptionChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'bar',
+                            data: {
+                                labels: labels,
+                                datasets: [
+                                    {
+                                    label: 'Consumption Quantity',
+                                    data: dataPoints,
+                                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                    borderColor: 'rgba(75, 192, 192, 1)',
+                                    borderWidth: 1
+                                    },
+                                    {
+                                        label: 'Cost',
+                                        data: cost,
+                                        backgroundColor: 'rgba(153, 102, 255, 0.2)',
+                                        borderColor: 'rgba(153, 102, 255, 1)',
+                                        borderWidth: 1
+                                     }
+                            ]
+                            },
+                            options: {
+                                scales: {
+                                    y: {
+                                        beginAtZero: true
+                                    }
+                                }
+                            }
+                        });
+                    } else {
+                        console.error('Unexpected response structure:', data);
+                    }
+                })
+                .catch(error => console.error('Error fetching data:', error));
+        });
+    </script>
+</body>
+</html>
